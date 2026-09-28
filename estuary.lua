@@ -23,7 +23,7 @@ end
 
 local function add_current_params(index)
   local current = currents[index]
-  params:add_group("CURRENT " .. index, 9)
+  params:add_group("CURRENT " .. index, 12)
 
   params:add_file(file_param(index), "sample")
   params:set_action(file_param(index), function(path)
@@ -84,6 +84,24 @@ local function add_current_params(index)
   params:set_action("current_" .. index .. "_delay_send", function(value)
     current.delay_send = value
   end)
+
+  params:add_control("current_" .. index .. "_crow_min", "crow minimum",
+    controlspec.new(-5, 10, "lin", 0.1, current.crow_min, "V"))
+  params:set_action("current_" .. index .. "_crow_min", function(value)
+    current.crow_min = value
+  end)
+
+  params:add_control("current_" .. index .. "_crow_max", "crow maximum",
+    controlspec.new(-5, 10, "lin", 0.1, current.crow_max, "V"))
+  params:set_action("current_" .. index .. "_crow_max", function(value)
+    current.crow_max = value
+  end)
+
+  params:add_control("current_" .. index .. "_crow_slew", "crow slew",
+    controlspec.new(0, 2, "lin", 0.01, current.crow_slew, "s"))
+  params:set_action("current_" .. index .. "_crow_slew", function(value)
+    current.crow_slew = value
+  end)
 end
 
 function init()
@@ -95,6 +113,11 @@ function init()
   engine:init()
 
   params:add_separator("ESTUARY")
+  params:add_option("crow_output", "crow waveform output", { "off", "on" }, 2)
+  params:set_action("crow_output", function(value)
+    engine:set_crow_enabled(value == 2)
+  end)
+
   params:add_control("proximity_falloff", "proximity falloff",
     controlspec.new(0.25, 8, "exp", 0.01, 1))
   params:set_action("proximity_falloff", function(value)

@@ -15,7 +15,7 @@ end
 
 function SoftcutEngine.new(currents)
   return setmetatable({ currents = currents, proximity_falloff = 1,
-    delay_time = 0.5, delay_feedback = 0.35 }, SoftcutEngine)
+    delay_time = 0.5, delay_feedback = 0.35, crow_enabled = true }, SoftcutEngine)
 end
 
 function SoftcutEngine:init()
@@ -59,6 +59,12 @@ function SoftcutEngine:init()
     if current then current:set_position(position) end
   end)
   softcut.poll_start_phase()
+
+  if crow then
+    for output = 1, VOICE_COUNT do
+      crow.output[output].volts = 0
+    end
+  end
 end
 
 function SoftcutEngine:load(voice, path)
@@ -101,6 +107,15 @@ function SoftcutEngine:set_delay_feedback(amount)
   softcut.pre_level(DELAY_VOICE, amount)
 end
 
+function SoftcutEngine:set_crow_enabled(enabled)
+  self.crow_enabled = enabled
+  if not enabled and crow then
+    for output = 1, VOICE_COUNT do
+      crow.output[output].volts = 0
+    end
+  end
+end
+
 function SoftcutEngine:update(now)
   for voice, current in ipairs(self.currents) do
     local level = 0
@@ -112,12 +127,21 @@ function SoftcutEngine:update(now)
     local lfo = current:update_lfo(now)
     softcut.level_cut_cut(voice, DELAY_VOICE,
       current.loaded and current.delay_send * lfo or 0)
+
+    if crow then
+      crow.output[voice].slew = current.crow_slew
+      crow.output[voice].volts = self.crow_enabled and current.loaded
+        and current:crow_voltage() or 0
+    end
   end
 end
 
 function SoftcutEngine:cleanup()
   softcut.poll_stop_phase()
   for voice = 1, DELAY_VOICE do softcut.enable(voice, 0) end
+  if crow then
+    for output = 1, VOICE_COUNT do crow.output[output].volts = 0 end
+  end
 end
 
 return SoftcutEngine
