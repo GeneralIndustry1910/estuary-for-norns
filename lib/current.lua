@@ -17,6 +17,9 @@ function Current.new(index)
     lfo_rate = 0.1,
     delay_send = 0,
     lfo_value = 0,
+    crow_min = -5,
+    crow_max = 5,
+    crow_slew = 0.03,
     loaded = false,
     loop_start = 0,
     loop_end = 1,
@@ -82,6 +85,13 @@ end
 function Current:update_lfo(now)
   self.lfo_value = self:lfo_at_phase(now * self.lfo_rate + self.tide_phase)
   return self.lfo_value
+end
+
+--- Read the current LFO waveform at the sample playhead and map it to volts.
+-- Tying phase to the playhead means rate and direction follow sample playback.
+function Current:crow_voltage()
+  local normalized = self:lfo_at_phase(self.position)
+  return self.crow_min + normalized * (self.crow_max - self.crow_min)
 end
 
 return Current
